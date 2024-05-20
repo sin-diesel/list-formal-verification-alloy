@@ -1,9 +1,9 @@
------------------------------ MODULE double_linked_list -----------------------------
+------------------------------ MODULE double_linked_list -----------------------------
 EXTENDS Naturals, Sequences, TLC
 
 CONSTANT 
-    NodeId = {1, 2, 3, 4, 5}
-    Data = {"A", "B", "C", "D", "E"}
+    NodeId,
+    Data 
 
 VARIABLES 
     list,             
@@ -73,13 +73,5 @@ InvariantList ==
 
 =============================================================================
 \* For model checking
-NodeId == {1, 2, 3, 4, 5}
-Data == {"A", "B", "C", "D", "E"}
 CheckSpec == Spec /\ InvariantList
 =============================================================================
-
-
-
-
-
-

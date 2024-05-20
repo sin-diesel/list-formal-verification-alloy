@@ -1,9 +1,9 @@
------------------------------- MODULE double_linked_list -----------------------------
+----------------------------- MODULE double_linked_list -----------------------------
 EXTENDS Naturals, Sequences, TLC
 
 CONSTANT 
-    NodeId,
-    Data 
+    NodeId, 
+    Data
 
 VARIABLES 
     list,             
@@ -20,26 +20,28 @@ Init ==
     /\ mutexes = [n \in NodeId |-> [locked |-> FALSE]]
     /\ next = [n \in NodeId |-> n]
     /\ prev = [n \in NodeId |-> n]
-    /\ data = [n \in NodeId |-> CHOOSE d: d \in Data]
+    /\ data = [n \in NodeId |-> CHOOSE d \in Data : TRUE]
 
-NodeInList(node) == node \in list
+NodeInList(node) == \E i \in 1..Len(list): list[i] = node
 ProperlyLinked(node) ==
     /\ next[node] \in NodeId
     /\ prev[next[node]] = node
     /\ prev[node] \in NodeId
     /\ next[prev[node]] = node
 
-Invariant == \A node \in list: ProperlyLinked(node)
+Invariant == \A node \in NodeId: NodeInList(node) => ProperlyLinked(node)
 AcquireMutex(node) ==
-    /\ mutexes[node].locked = FALSE
+    /\ ~mutexes[node].locked
     /\ mutexes' = [mutexes EXCEPT ![node].locked = TRUE]
+    /\ UNCHANGED <<list, next, prev, data>>
 
 ReleaseMutex(node) ==
-    /\ mutexes[node].locked = TRUE
+    /\ mutexes[node].locked
     /\ mutexes' = [mutexes EXCEPT ![node].locked = FALSE]
+    /\ UNCHANGED <<list, next, prev, data>>
 
 InsertAfter(predNode, newNode) ==
-    /\ newNode \notin list
+    /\ ~NodeInList(newNode)
     /\ AcquireMutex(predNode)
     /\ AcquireMutex(next[predNode])
     /\ next' = [next EXCEPT ![predNode] = newNode, ![newNode] = next[predNode]]
@@ -47,18 +49,20 @@ InsertAfter(predNode, newNode) ==
     /\ list' = Append(list, newNode)
     /\ ReleaseMutex(predNode)
     /\ ReleaseMutex(next[predNode])
+    /\ UNCHANGED data
 
 Remove(node) ==
-    /\ node \in list
+    /\ NodeInList(node)
     /\ AcquireMutex(prev[node])
     /\ AcquireMutex(node)
     /\ AcquireMutex(next[node])
     /\ next' = [next EXCEPT ![prev[node]] = next[node]]
     /\ prev' = [prev EXCEPT ![next[node]] = prev[node]]
-    /\ list' = list \ {node}
+    /\ list' = SubSeq(list, 1, Len(list) - 1)
     /\ ReleaseMutex(prev[node])
     /\ ReleaseMutex(node)
     /\ ReleaseMutex(next[node])
+    /\ UNCHANGED data
 
 Next ==
     \/ \E predNode \in NodeId, newNode \in NodeId: InsertAfter(predNode, newNode)
@@ -73,5 +77,7 @@ InvariantList ==
 
 =============================================================================
 \* For model checking
+NodeId == {1, 2, 3, 4, 5}
+Data == {"A", "B", "C", "D", "E"}
 CheckSpec == Spec /\ InvariantList
 =============================================================================
